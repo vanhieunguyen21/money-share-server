@@ -24,13 +24,13 @@ func UserToUserDTO(domain model.User) UserDTO {
 	dob := domain.DateOfBirth.Format(util.ShortDateLayout)
 
 	return UserDTO{
-		ID:           domain.Model.ID,
-		Username:     domain.Username,
-		Password:     "",
-		DisplayName:  domain.DisplayName,
-		PhoneNumber:  domain.PhoneNumber,
-		EmailAddress: domain.EmailAddress,
-		DateOfBirth:  dob,
+		ID:              domain.Model.ID,
+		Username:        domain.Username,
+		DisplayName:     domain.DisplayName,
+		ProfileImageUrl: domain.ProfileImageUrl,
+		PhoneNumber:     domain.PhoneNumber,
+		EmailAddress:    domain.EmailAddress,
+		DateOfBirth:     dob,
 	}
 }
 
@@ -51,6 +51,7 @@ func GroupToGroupDTO(domain model.Group) GroupDTO {
 		ID:              domain.ID,
 		GroupIdentifier: domain.GroupIdentifier,
 		Name:            domain.Name,
+		GroupImageUrl:   domain.GroupImageUrl,
 		TotalExpense:    domain.TotalExpense,
 		AverageExpense:  domain.AverageExpense,
 		Members:         members,
@@ -61,6 +62,7 @@ func GroupToGroupDTO(domain model.Group) GroupDTO {
 func MemberToMemberDTO(domain model.Member) MemberDTO {
 	return MemberDTO{
 		User:         UserToUserDTO(domain.User),
+		Role:         domain.Role,
 		TotalExpense: domain.TotalExpense,
 	}
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"money_share/pkg/dto"
-	"money_share/pkg/http/request"
+	"money_share/pkg/dto/request"
 	"money_share/pkg/repository"
 	"net/http"
 	"strconv"

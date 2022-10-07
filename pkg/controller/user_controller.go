@@ -6,9 +6,10 @@ import (
 	"github.com/gorilla/mux"
 	"money_share/pkg/auth"
 	"money_share/pkg/dto"
-	"money_share/pkg/http/request"
-	"money_share/pkg/http/response"
+	"money_share/pkg/dto/request"
+	"money_share/pkg/dto/response"
 	"money_share/pkg/repository"
+	"money_share/pkg/util"
 	"net/http"
 	"strconv"
 )
@@ -19,51 +20,42 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	// Parse login request from body
 	loginRequest := &request.LoginRequest{}
 	if err := json.NewDecoder(r.Body).Decode(loginRequest); err != nil {
-		errMsg := fmt.Sprintf("Cannot parse request body")
-		http.Error(w, errMsg, http.StatusBadRequest)
+		util.ResponseError(w, "Cannot parse request body", http.StatusBadRequest)
 		return
 	}
 	// Validate fields
 	username := loginRequest.Username
 	password := loginRequest.Password
 	if len(username) == 0 || len(password) == 0 {
-		errMsg := fmt.Sprintf("Username or password cannot be empty")
-		http.Error(w, errMsg, http.StatusBadRequest)
+		util.ResponseError(w, "Username or password cannot be empty", http.StatusBadRequest)
 		return
 	}
 
 	// Find database record and compare password
 	user, err := UserRepository.GetByUsername(username)
 	if err != nil {
-		http.Error(w, "Wrong username or password", http.StatusUnauthorized)
-		fmt.Println(err)
+		util.ResponseError(w, "Wrong username or password", http.StatusUnauthorized)
 		return
 	}
 	authorized := user.ComparePassword(password)
 	if !authorized {
-		http.Error(w, "Wrong username or password", http.StatusUnauthorized)
+		util.ResponseError(w, "Wrong username or password", http.StatusUnauthorized)
 		return
 	}
 
 	// Generate jwt token
 	tokenStr, err := auth.GenerateJWT(username)
 	if err != nil {
-		errMsg := "Error when generating authorization token"
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg + " " + err.Error())
+		util.ResponseError(w, "Error when generating authorization token", http.StatusInternalServerError)
 		return
 	}
 
 	// Write to response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(map[string]string{"token": tokenStr})
-	if err != nil {
-		errMsg := fmt.Sprintf("Error encoding to json: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
-		return
+	loginResponse := response.LoginResponse{
+		UserDTO: dto.UserToUserDTO(*user),
+		Token:   tokenStr,
 	}
+	util.ResponseJSON(w, loginResponse)
 }
 
 func GetUserByID(w http.ResponseWriter, r *http.Request) {
@@ -72,138 +64,95 @@ func GetUserByID(w http.ResponseWriter, r *http.Request) {
 	userIDStr := params["userId"]
 	userID, err := strconv.ParseUint(userIDStr, 0, 32)
 	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse user ID '%s': %s", userIDStr, err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg)
+		util.ResponseError(w, fmt.Sprintf("Cannot parse user ID '%s': %s", userIDStr, err), http.StatusBadRequest)
 		return
 	}
 
 	// Get user from database
 	user, err := UserRepository.GetById(uint(userID))
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to get user by ID '%d': %s", userID, err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
+		util.ResponseError(w, fmt.Sprintf("Failed to get user by ID '%d': %s", userID, err), http.StatusInternalServerError)
 		return
 	}
 
 	// Write to response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	userDTO := dto.UserToUserDTO(*user)
-	err = json.NewEncoder(w).Encode(userDTO)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error encoding to json: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
-		return
-	}
+	util.ResponseJSON(w, userDTO)
 }
 
 func CheckUsername(w http.ResponseWriter, r *http.Request) {
 	// Init responseObj object
-	responseObj := response.CheckUsernameResponse{}
+	responseObj := response.SimpleResponse{}
 
 	// Get username from parameters
 	params := mux.Vars(r)
 	username := params["username"]
-	responseObj.Username = username
 
 	// Check username requirements
 	if len(username) < 6 {
-		responseObj.Requirement = false
-		responseObj.Message = "Length must be equal or greater than 6"
+		responseObj.Result = false
 	} else {
-		responseObj.Requirement = true
-	}
-
-	// Check username availability if username requirement passes
-	if responseObj.Requirement {
 		available, err := UserRepository.CheckUsernameAvailability(username)
 		if err != nil {
-			errMsg := fmt.Sprintf("Error checking username '%s' availability: %s", username, err)
-			http.Error(w, errMsg, http.StatusInternalServerError)
-			fmt.Println(errMsg)
+			util.ResponseError(w, fmt.Sprintf("Error checking username '%s' availability: %s", username, err), http.StatusInternalServerError)
 			return
 		} else {
-			responseObj.Available = available
-			if !available {
-				responseObj.Message = "Username is taken"
-			}
+			responseObj.Result = available
 		}
 	}
 
 	// Write to responseObj
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(responseObj)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error encoding to json: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
-		return
-	}
+	util.ResponseJSON(w, responseObj)
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	// Parse user data from request body
-	userDTO := &dto.UserDTO{}
-	err := json.NewDecoder(r.Body).Decode(userDTO)
+	registerRequest := &request.RegisterRequest{}
+	err := json.NewDecoder(r.Body).Decode(registerRequest)
 	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse request body")
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg + err.Error())
-		return
-	}
-	user, err := userDTO.MapToDomain()
-	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse model: %s", err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Print(errMsg)
+		util.ResponseError(w, "Cannot parse request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate fields
-	if user.Username == "" {
-		http.Error(w, "Field does not meet requirement: username must not be empty", http.StatusBadRequest)
+	if len(registerRequest.Username) < 6 {
+		util.ResponseError(w, "Field does not meet requirement: username must be at least 6 characters", http.StatusBadRequest)
 		return
 	}
-	if user.Username == "" || len(user.Password) < 6 || user.DisplayName == "" {
-		http.Error(w,
-			"Field does not meet requirement: password length must be equal or greater than 6",
-			http.StatusBadRequest)
+	if len(registerRequest.Password) < 8 {
+		util.ResponseError(w, "Field does not meet requirement: password must be at least 8 characters", http.StatusBadRequest)
 		return
 	}
+	if len(registerRequest.DisplayName) < 4 {
+		util.ResponseError(w, "Field does not meet requirement: display name must be at least 4 characters", http.StatusBadRequest)
+		return
+	}
+
+	// Create user object
+	user, err := registerRequest.UserDTO.MapToDomain()
+	if err != nil {
+		util.ResponseError(w, "Error while parsing user object", http.StatusInternalServerError)
+		return
+	}
+	user.Password = registerRequest.Password
 
 	// Hash password
 	err = user.HashPassword()
 	if err != nil {
-		errMsg := fmt.Sprintf("Error while registering")
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg + err.Error())
+		util.ResponseError(w, "Error while registering", http.StatusInternalServerError)
 		return
 	}
 
 	// Create user in database
 	savedUser, err := UserRepository.Create(&user)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error creating user: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
+		util.ResponseError(w, "Error creating user", http.StatusInternalServerError)
 		return
 	}
 
 	// Write created user to response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	savedUserDTO := dto.UserToUserDTO(*savedUser)
-	err = json.NewEncoder(w).Encode(savedUserDTO)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error encoding to json: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
-		return
-	}
+	util.ResponseJSON(w, savedUserDTO)
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {

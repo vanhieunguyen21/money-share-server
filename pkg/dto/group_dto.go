@@ -9,6 +9,7 @@ type GroupDTO struct {
 	ID              uint         `json:"id"`
 	GroupIdentifier string       `json:"groupIdentifier"`
 	Name            string       `json:"name"`
+	GroupImageUrl   string       `json:"groupImageUrl"`
 	TotalExpense    float32      `json:"totalExpense"`
 	AverageExpense  float32      `json:"averageExpense"`
 	Members         []MemberDTO  `json:"members"`
@@ -35,6 +36,7 @@ func (dto GroupDTO) MapToDomain() (model.Group, error) {
 		Model:           gorm.Model{ID: dto.ID},
 		GroupIdentifier: dto.GroupIdentifier,
 		Name:            dto.Name,
+		GroupImageUrl:   dto.GroupImageUrl,
 		TotalExpense:    dto.TotalExpense,
 		AverageExpense:  dto.AverageExpense,
 		Members:         members,

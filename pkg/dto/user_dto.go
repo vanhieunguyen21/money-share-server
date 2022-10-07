@@ -9,13 +9,13 @@ import (
 )
 
 type UserDTO struct {
-	ID           uint   `json:"id"`
-	Username     string `json:"username"`
-	Password     string `json:"password"`
-	DisplayName  string `json:"displayName"`
-	PhoneNumber  string `json:"phoneNumber"`
-	EmailAddress string `json:"emailAddress"`
-	DateOfBirth  string `json:"dateOfBirth"`
+	ID              uint   `json:"id"`
+	Username        string `json:"username"`
+	DisplayName     string `json:"displayName"`
+	ProfileImageUrl string `json:"profileImageUrl"`
+	PhoneNumber     string `json:"phoneNumber"`
+	EmailAddress    string `json:"emailAddress"`
+	DateOfBirth     string `json:"dateOfBirth"`
 }
 
 func (dto UserDTO) MapToDomain() (model.User, error) {
@@ -31,12 +31,12 @@ func (dto UserDTO) MapToDomain() (model.User, error) {
 	}
 
 	return model.User{
-		Model:        gorm.Model{ID: dto.ID},
-		Username:     dto.Username,
-		Password:     dto.Password,
-		DisplayName:  dto.DisplayName,
-		PhoneNumber:  dto.PhoneNumber,
-		EmailAddress: dto.EmailAddress,
-		DateOfBirth:  dob,
+		Model:           gorm.Model{ID: dto.ID},
+		Username:        dto.Username,
+		DisplayName:     dto.DisplayName,
+		ProfileImageUrl: dto.ProfileImageUrl,
+		PhoneNumber:     dto.PhoneNumber,
+		EmailAddress:    dto.EmailAddress,
+		DateOfBirth:     dob,
 	}, nil
 }

@@ -8,13 +8,14 @@ import (
 
 type User struct {
 	gorm.Model
-	Username     string    `gorm:"unique;not null"`
-	Password     string    `gorm:"not null"`
-	DisplayName  string    ``
-	PhoneNumber  string    ``
-	EmailAddress string    ``
-	DateOfBirth  time.Time ``
-	Members      []Member  `gorm:"constraint:OnDelete:SET NULL;"` // One to many with Member entity
+	Username        string    `gorm:"unique;not null"`
+	Password        string    `gorm:"not null"`
+	DisplayName     string    ``
+	ProfileImageUrl string    ``
+	PhoneNumber     string    ``
+	EmailAddress    string    ``
+	DateOfBirth     time.Time ``
+	Members         []Member  `gorm:"constraint:OnDelete:SET NULL;"` // One to many with Member entity
 }
 
 func (u *User) HashPassword() (err error) {
