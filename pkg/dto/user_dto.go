@@ -9,13 +9,13 @@ import (
 )
 
 type UserDTO struct {
-	ID              uint   `json:"id"`
-	Username        string `json:"username"`
-	DisplayName     string `json:"displayName"`
-	ProfileImageUrl string `json:"profileImageUrl"`
-	PhoneNumber     string `json:"phoneNumber"`
-	EmailAddress    string `json:"emailAddress"`
-	DateOfBirth     string `json:"dateOfBirth"`
+	ID              uint   `json:"id,omitempty"`
+	Username        string `json:"username,omitempty"`
+	DisplayName     string `json:"displayName,omitempty"`
+	ProfileImageUrl string `json:"profileImageUrl,omitempty"`
+	PhoneNumber     string `json:"phoneNumber,omitempty"`
+	EmailAddress    string `json:"emailAddress,omitempty"`
+	DateOfBirth     string `json:"dateOfBirth,omitempty"`
 }
 
 func (dto UserDTO) MapToDomain() (model.User, error) {
