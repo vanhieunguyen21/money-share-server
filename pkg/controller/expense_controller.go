@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"money_share/pkg/dto"
-	"money_share/pkg/dto/request"
 	"money_share/pkg/repository"
 	"net/http"
 	"strconv"
@@ -136,40 +135,59 @@ func GetExpensesByMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateExpense(w http.ResponseWriter, r *http.Request) {
-	// Parse expense creation request from request body
-	expenseCreationRequest := &request.ExpenseCreationRequest{}
-	err := json.NewDecoder(r.Body).Decode(expenseCreationRequest)
+	// Parse request body
+	expenseDTO := &dto.ExpenseDTO{}
+	err := json.NewDecoder(r.Body).Decode(expenseDTO)
 	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse request body: %s", err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg)
+		ResponseError(w, fmt.Sprintf("Cannot parse request body: %s", err), http.StatusBadRequest)
 		return
 	}
+	// Get user ID from header
+	userIDString := r.Header.Get("userID")
+	userID, _ := strconv.ParseUint(userIDString, 0, 32)
+
 	// TODO: Validate fields
-	expense := expenseCreationRequest.Expense.MapToDomain()
-	expense.MemberID = expenseCreationRequest.MemberID
-	expense.GroupID = expenseCreationRequest.GroupID
+	expense := expenseDTO.MapToDomain()
+
+	// Get requester role in group
+	user, err := MemberRepository.GetByID(uint(userID), expense.GroupID)
+	if err != nil {
+		ResponseError(w, fmt.Sprintf("Error validating requester role in group: %s", err),
+			http.StatusInternalServerError)
+		return
+	}
+	role := user.Role
+	if role == "member" {
+		expense.Status = "pending"
+		if expense.MemberID != uint(userID) {
+			ResponseError(w, "You are not a manager, you cannot add expense for another member", http.StatusBadRequest)
+			return
+		}
+	} else if role == "manager" {
+		expense.Status = "approved"
+		// Validate member of group
+		if expense.MemberID != uint(userID) {
+			_, err := MemberRepository.GetByID(expense.MemberID, expense.GroupID)
+			if err != nil {
+				ResponseError(w, "User provided is not a member of the group", http.StatusBadRequest)
+				return
+			}
+		}
+	} else {
+		ResponseError(w, "You are not a member of this group", http.StatusBadRequest)
+		return
+	}
 
 	// Create expense in database
 	err = ExpenseRepository.Create(&expense)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error creating expense: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
+		ResponseError(w, fmt.Sprintf("Error creating expense: %s", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Write to response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	expenseDTO := dto.ExpenseToExpenseDTO(expense)
-	err = json.NewEncoder(w).Encode(expenseDTO)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error encoding to json: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
-		return
-	}
+	savedExpenseDTO := dto.ExpenseToExpenseDTO(expense)
+	ResponseJSON(w, savedExpenseDTO)
 }
 
 func UpdateExpense(w http.ResponseWriter, r *http.Request) {

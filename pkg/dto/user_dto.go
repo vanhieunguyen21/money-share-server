@@ -2,7 +2,6 @@ package dto
 
 import (
 	"gorm.io/gorm"
-	"log"
 	"money_share/pkg/model"
 	"money_share/pkg/util"
 	"time"
@@ -25,7 +24,6 @@ func (dto UserDTO) MapToDomain() (model.User, error) {
 	if dto.DateOfBirth != "" {
 		dob, err = time.Parse(util.ShortDateLayout, dto.DateOfBirth)
 		if err != nil {
-			log.Println(err)
 			return model.User{}, err
 		}
 	}

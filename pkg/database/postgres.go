@@ -9,8 +9,8 @@ import (
 
 const (
 	host = "localhost"
-	user = "postgres"
-	password = "\"\""
+	user = "admin"
+	password = "123456"
 	dbname = "money_share"
 )
 

@@ -7,7 +7,7 @@ import (
 
 func ExpenseToExpenseDTO(domain model.Expense) ExpenseDTO {
 	// Convert purchase time to string
-	purchaseTime := domain.PurchaseTime.Format(util.DateTimeLayout)
+	purchaseTime := domain.PurchaseTime.UTC().Format(util.DateTimeLayout)
 
 	return ExpenseDTO{
 		ID:           domain.Model.ID,
@@ -16,6 +16,8 @@ func ExpenseToExpenseDTO(domain model.Expense) ExpenseDTO {
 		Amount:       domain.Amount,
 		PurchaseTime: purchaseTime,
 		Status:       domain.Status,
+		MemberID:     domain.MemberID,
+		GroupID:      domain.GroupID,
 	}
 }
 
@@ -36,26 +38,25 @@ func UserToUserDTO(domain model.User) UserDTO {
 
 func GroupToGroupDTO(domain model.Group) GroupDTO {
 	// Map members
-	var members []MemberDTO
+	members := make([]MemberDTO, 0)
 	for _, member := range domain.Members {
 		members = append(members, MemberToMemberDTO(member))
 	}
 
 	// Map expenses
-	var expenses []ExpenseDTO
+	expenses := make([]ExpenseDTO, 0)
 	for _, expense := range domain.Expenses {
 		expenses = append(expenses, ExpenseToExpenseDTO(expense))
 	}
 
 	return GroupDTO{
-		ID:              domain.ID,
-		GroupIdentifier: domain.GroupIdentifier,
-		Name:            domain.Name,
-		GroupImageUrl:   domain.GroupImageUrl,
-		TotalExpense:    domain.TotalExpense,
-		AverageExpense:  domain.AverageExpense,
-		Members:         members,
-		Expenses:        expenses,
+		ID:             domain.ID,
+		Name:           domain.Name,
+		GroupImageUrl:  domain.GroupImageUrl,
+		TotalExpense:   domain.TotalExpense,
+		AverageExpense: domain.AverageExpense,
+		Members:        members,
+		Expenses:       expenses,
 	}
 }
 

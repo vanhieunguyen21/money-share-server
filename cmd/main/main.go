@@ -8,6 +8,7 @@ import (
 	"money_share/pkg/auth"
 	"money_share/pkg/controller"
 	"money_share/pkg/database"
+	"money_share/pkg/middleware"
 	"money_share/pkg/repository"
 	"money_share/pkg/route"
 	"net/http"
@@ -30,12 +31,20 @@ func main() {
 	controller.MemberRepository = repository.NewMemberRepository(db.DB)
 	controller.ExpenseRepository = repository.NewExpenseRepository(db.DB)
 
+	database.NewRedisClient()
+
 	fmt.Println("Starting server at port 8080...")
 	r := mux.NewRouter()
+	// Set up rate limiter middleware
+	r.Use(middleware.RateLimit(50, 10))
+	// Set up routes
 	route.RegisterUserRoutes(r)
 	route.RegisterGroupRoutes(r)
 	route.RegisterMemberRoutes(r)
 	route.RegisterExpenseRoutes(r)
+	// Handle not found with custom message
+	r.HandleFunc("/", controller.HandleNotFound)
+	// Start server
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

@@ -10,6 +10,6 @@ type UserRepository interface {
 	CheckUsernameAvailability(username string) (bool, error)
 	ValidateUsernameAndUserID(username string, userID uint) (bool, error)
 	Create(user *model.User) (*model.User, error)
-	Update(user *model.User) (*model.User, error)
+	Update(userID uint, updateMap map[string]interface{}) (*model.User, error)
 	Delete(userId uint) error
 }

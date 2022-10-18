@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"log"
 	"money_share/pkg/dto"
 	"money_share/pkg/dto/request"
+	"money_share/pkg/model"
 	"money_share/pkg/repository"
 	"net/http"
 	"strconv"
@@ -19,32 +21,20 @@ func GetGroupById(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := params["groupId"]
 	groupID, err := strconv.ParseUint(groupIDStr, 0, 32)
 	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse group ID '%s': %s", groupIDStr, err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg)
+		ResponseError(w, fmt.Sprintf("Cannot parse group ID '%s': %s", groupIDStr, err), http.StatusBadRequest)
 		return
 	}
 
 	// Get group from database
 	group, err := GroupRepository.GetById(uint(groupID))
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to get group by ID '%d': %s", groupID, err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
+		ResponseError(w, fmt.Sprintf("Failed to get group by ID '%d'", groupID), http.StatusInternalServerError)
 		return
 	}
 
 	// Write to response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	groupDTO := dto.GroupToGroupDTO(*group)
-	err = json.NewEncoder(w).Encode(groupDTO)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error encoding to json: %s", err)
-		http.Error(w, errMsg, http.StatusInternalServerError)
-		fmt.Println(errMsg)
-		return
-	}
+	ResponseJSON(w, groupDTO)
 }
 
 func GetGroupsByUser(w http.ResponseWriter, r *http.Request) {
@@ -89,31 +79,28 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	groupCreationRequest := &request.GroupCreationRequest{}
 	err := json.NewDecoder(r.Body).Decode(groupCreationRequest)
 	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse request body: %s", err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg)
+		ResponseError(w, fmt.Sprintf("Cannot parse request body: %s", err), http.StatusBadRequest)
 		return
 	}
-	group, err := groupCreationRequest.Group.MapToDomain()
-	if err != nil {
-		errMsg := fmt.Sprintf("Cannot parse model: %s", err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg)
-		return
+	group := &model.Group{
+		Name: groupCreationRequest.Name,
 	}
-	creatorId := groupCreationRequest.CreatorID
+	// Get creator username from header
+	username := r.Header.Get("username")
 
 	// Create group in database
-	err = GroupRepository.Create(&group, creatorId)
+	err = GroupRepository.Create(group, username)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error creating group: %s", err)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		fmt.Println(errMsg)
+		ResponseError(w, "Error creating group", http.StatusBadRequest)
+		log.Println(err)
 		return
 	}
 
 	// Write to response
-	w.WriteHeader(http.StatusOK)
+	groupDTO := dto.GroupToGroupDTO(*group)
+	groupDTO.Members = nil
+	groupDTO.Expenses = nil
+	ResponseJSON(w, groupDTO)
 }
 
 func UpdateGroup(w http.ResponseWriter, r *http.Request) {

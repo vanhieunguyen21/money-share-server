@@ -42,14 +42,6 @@ func ValidateUsername(username string) (err error) {
 		return
 	}
 
-	// [^_.].*[^_.]: no _ or . at the beginning or at the end
-	// (?!.*[_.]{2}): no __ or _. or ._ or .. inside
-	match, _ = regexp.MatchString("^(?!.*[_.]{2})[^_.].*[^_.]$", username)
-	if !match {
-		err = errors.New("username must not contains no __ or _. or ._ or .. inside or _ or . at the beginning or at the end")
-		return
-	}
-
 	return
 }
 
@@ -75,7 +67,7 @@ func (u *User) TrimDisplayName() {
 	u.DisplayName = strings.TrimSpace(u.DisplayName)
 }
 
-func (u *User) ValidateDisplayName()(err error) {
+func (u *User) ValidateDisplayName() (err error) {
 	return ValidateDisplayName(u.DisplayName)
 }
 
@@ -94,9 +86,17 @@ func ValidateDisplayName(displayName string) (err error) {
 }
 
 func (u *User) HashPassword() (err error) {
-	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.MinCost)
+	hashedPwd, err := HashPassword(u.Password)
 	if err == nil {
-		u.Password = string(hashedPwd)
+		u.Password = hashedPwd
+	}
+	return
+}
+
+func HashPassword(password string) (hashedPassword string, err error) {
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err == nil {
+		hashedPassword = string(hashedPwd)
 	}
 	return
 }

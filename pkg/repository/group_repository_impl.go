@@ -22,7 +22,8 @@ func (repository GroupRepositoryImpl) GetById(groupId uint) (*model.Group, error
 	}
 
 	group := &model.Group{}
-	err := db.First(group, groupId).Error
+	group.ID = groupId
+	err := db.Preload("Members").Preload("Members.User").Preload("Expenses").Find(group).Error
 	return group, err
 }
 
@@ -37,15 +38,15 @@ func (repository GroupRepositoryImpl) GetByUser(userId uint) ([]*model.Group, er
 	return groups, err
 }
 
-func (repository GroupRepositoryImpl) Create(group *model.Group, creatorId uint) error {
+func (repository GroupRepositoryImpl) Create(group *model.Group, username string) error {
 	db := repository.DB
-	if creatorId <= 0 {
-		return errors.New("creatorId must be greater than 0")
+	if len(username) == 0 {
+		return errors.New("username cannot be empty")
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// Validate creator existence
 		creator := &model.User{}
-		if err := tx.First(creator, creatorId).Error; err != nil {
+		if err := tx.Where("username = ?", username).First(creator).Error; err != nil {
 			return err
 		}
 		// Create group
@@ -59,7 +60,7 @@ func (repository GroupRepositoryImpl) Create(group *model.Group, creatorId uint)
 			GroupID:      group.ID,
 			Role:         "manager",
 		}
-		if err := tx.Model(&model.Member{}).Association("Member").Append(member); err != nil {
+		if err := tx.Model(group).Association("Members").Append(member); err != nil {
 			return err
 		}
 
@@ -99,4 +100,22 @@ func (repository GroupRepositoryImpl) Delete(groupId uint) error {
 	}
 
 	return db.Delete(&model.Group{}, groupId).Error
+}
+
+func (repository GroupRepositoryImpl) GetMemberRole(memberID uint, groupID uint) (role string, err error) {
+	db := repository.DB
+	if memberID <= 0 || groupID <= 0 {
+		err = errors.New("member ID or group ID must be greater than 0")
+		return
+	}
+
+	result := struct {
+		Role string
+	}{}
+	err = db.Model(&model.Member{}).Where("user_id = ? AND group_id = ?", memberID, groupID).Find(&result).Error
+	if err != nil {
+		return
+	}
+	role = result.Role
+	return
 }

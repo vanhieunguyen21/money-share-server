@@ -55,21 +55,16 @@ func (repository UserRepositoryImpl) Create(user *model.User) (*model.User, erro
 	return user, result.Error
 }
 
-func (repository UserRepositoryImpl) Update(user *model.User) (*model.User, error) {
-	if user.ID == 0 {
+func (repository UserRepositoryImpl) Update(userID uint, updateMap map[string]interface{}) (*model.User, error) {
+	db := repository.DB
+	if userID == 0 {
 		return &model.User{}, errors.New("user ID not provided")
 	}
-	updateUser := &model.User{}
-	updateUser.ID = user.ID
 
-	// Make sure record exists
-	queryRs := repository.DB.First(updateUser)
-	if queryRs.RowsAffected == 0 {
-		return &model.User{}, errors.New("user with ID does not exist")
-	}
-
-	updateRs := queryRs.Updates(user)
-	return updateUser, updateRs.Error
+	user := &model.User{}
+	user.ID = userID
+	updateRs := db.Model(user).Clauses(clause.Returning{}).Updates(updateMap)
+	return user, updateRs.Error
 }
 
 func (repository UserRepositoryImpl) Delete(userId uint) error {

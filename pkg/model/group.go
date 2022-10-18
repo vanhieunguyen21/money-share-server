@@ -4,7 +4,6 @@ import "gorm.io/gorm"
 
 type Group struct {
 	gorm.Model
-	GroupIdentifier string    `gorm:"unique;not null"`
 	Name            string    `gorm:"not null"`
 	GroupImageUrl   string    ``
 	TotalExpense    float32   `gorm:"default:0"`

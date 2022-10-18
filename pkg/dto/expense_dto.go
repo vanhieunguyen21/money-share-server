@@ -9,12 +9,14 @@ import (
 )
 
 type ExpenseDTO struct {
-	ID           uint    `json:"id"`
-	Title        string  `json:"title"`
-	Description  string  `json:"description"`
-	Amount       float32 `json:"amount"`
-	PurchaseTime string  `json:"purchaseTime"`
-	Status       string  `json:"status"` // pending, approved, denied
+	ID           uint    `json:"id,omitempty"`
+	Title        string  `json:"title,omitempty"`
+	Description  string  `json:"description,omitempty"`
+	Amount       float32 `json:"amount,omitempty"`
+	PurchaseTime string  `json:"purchaseTime,omitempty"`
+	Status       string  `json:"status,omitempty"` // pending, approved, denied
+	MemberID     uint    `json:"memberID,omitempty"`
+	GroupID      uint    `json:"groupID,omitempty"`
 }
 
 func (dto ExpenseDTO) MapToDomain() model.Expense {
@@ -31,5 +33,7 @@ func (dto ExpenseDTO) MapToDomain() model.Expense {
 		Amount:       dto.Amount,
 		PurchaseTime: purchaseTime,
 		Status:       dto.Status,
+		MemberID:     dto.MemberID,
+		GroupID:      dto.GroupID,
 	}
 }
