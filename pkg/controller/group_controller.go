@@ -85,11 +85,12 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	group := &model.Group{
 		Name: groupCreationRequest.Name,
 	}
-	// Get creator username from header
-	username := r.Header.Get("username")
+	// Get creator id from header
+	userIDStr := r.Header.Get("userID")
+	userID, _ := strconv.ParseUint(userIDStr, 0, 32)
 
 	// Create group in database
-	err = GroupRepository.Create(group, username)
+	err = GroupRepository.Create(group, uint(userID))
 	if err != nil {
 		ResponseError(w, "Error creating group", http.StatusBadRequest)
 		log.Println(err)

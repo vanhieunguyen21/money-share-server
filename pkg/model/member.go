@@ -9,3 +9,5 @@ type Member struct {
 	// One-to-many relationship with Expense entity
 	Expenses []Expense `gorm:"foreignKey:MemberID,GroupID;references:UserID,GroupID;constraint:OnDelete:SET NULL;"`
 }
+
+// TODO: update average expense of group when new member is created

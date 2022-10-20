@@ -53,7 +53,9 @@ func (e *Expense) updateMemberAndGroupExpenses(tx *gorm.DB) (err error) {
 	groupSpecificClause := "group_id = ? AND status='approved'"
 	err = tx.Model(&Group{}).Where("id = ?", e.GroupID).Updates(map[string]interface{}{
 		"total_expense": tx.Model(&Expense{}).Select("SUM(amount)").Where(groupSpecificClause, e.GroupID),
-		"average_expense": tx.Model(&Expense{}).Select("SUM(amount)/COUNT(*)").Where(groupSpecificClause, e.GroupID),
+		"average_expense": tx.Model(&Expense{}).Select("SUM(amount)/(?)",
+			tx.Model(&Member{}).Select("COUNT(1)").Where("user_id = ? AND group_id = ?",
+				e.MemberID, e.GroupID)).Where(groupSpecificClause, e.GroupID),
 	}).Error
 
 	return

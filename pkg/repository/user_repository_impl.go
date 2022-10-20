@@ -49,10 +49,10 @@ func (repository UserRepositoryImpl) ValidateUsernameAndUserID(username string, 
 	return recordFound != 0, nil
 }
 
-func (repository UserRepositoryImpl) Create(user *model.User) (*model.User, error) {
+func (repository UserRepositoryImpl) Create(user *model.User) (err error) {
 	// Skip all associations before inserting
-	result := repository.DB.Omit(clause.Associations).Create(user)
-	return user, result.Error
+	err = repository.DB.Omit(clause.Associations).Create(user).Error
+	return
 }
 
 func (repository UserRepositoryImpl) Update(userID uint, updateMap map[string]interface{}) (*model.User, error) {
@@ -71,6 +71,12 @@ func (repository UserRepositoryImpl) Delete(userId uint) error {
 	if userId == 0 {
 		return errors.New("user ID not provided")
 	}
-
-	return repository.DB.Delete(&model.User{}, userId).Error
+	result := repository.DB.Delete(&model.User{}, userId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("no row changed")
+	}
+	return nil
 }

@@ -22,8 +22,8 @@ func (repository GroupRepositoryImpl) GetById(groupId uint) (*model.Group, error
 	}
 
 	group := &model.Group{}
-	group.ID = groupId
-	err := db.Preload("Members").Preload("Members.User").Preload("Expenses").Find(group).Error
+	//group.ID = groupId
+	err := db.Preload("Members").Preload("Members.User").Preload("Expenses").First(group, groupId).Error
 	return group, err
 }
 
@@ -38,15 +38,15 @@ func (repository GroupRepositoryImpl) GetByUser(userId uint) ([]*model.Group, er
 	return groups, err
 }
 
-func (repository GroupRepositoryImpl) Create(group *model.Group, username string) error {
+func (repository GroupRepositoryImpl) Create(group *model.Group, creatorID uint) error {
 	db := repository.DB
-	if len(username) == 0 {
-		return errors.New("username cannot be empty")
+	if creatorID < 0 {
+		return errors.New("creatorID must be greater than 0")
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// Validate creator existence
 		creator := &model.User{}
-		if err := tx.Where("username = ?", username).First(creator).Error; err != nil {
+		if err := tx.First(creator, creatorID).Error; err != nil {
 			return err
 		}
 		// Create group

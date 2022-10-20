@@ -12,6 +12,7 @@ import (
 	"money_share/pkg/repository"
 	"money_share/pkg/route"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -23,6 +24,9 @@ func main() {
 		return
 	}
 	auth.JWTKey = []byte(viper.GetString("JWT_KEY"))
+
+	// Set time zone to UTC
+	time.Local = time.UTC
 
 	fmt.Println("Connecting to database...")
 	db := database.Connect()

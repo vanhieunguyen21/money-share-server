@@ -152,7 +152,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user in database
-	_, err = UserRepository.Create(&user)
+	err = UserRepository.Create(&user)
 	if err != nil {
 		ResponseError(w, "Error while creating user", http.StatusInternalServerError)
 		return
